@@ -1,2 +1,2 @@
 # FluidSim
-Testing PINNS on Fluid Dyamics
+Fluid Dynamics Simulator for Testing PINNs
