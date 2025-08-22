@@ -1,1 +1,1 @@
-grid_size = (2,2)
+    u_interior = [u[point] for point in interior_points * (nx,ny).astype(int)]
