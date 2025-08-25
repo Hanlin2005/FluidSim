@@ -2,6 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+from scipy.interpolate import RegularGridInterpolator
 
 #Initialize variables
 grid_size = (2,2)
@@ -55,7 +56,7 @@ def pressure_poisson(p, dx, dy, b):
         
     return p
 
-def simulate(nt, u, v, dt, dx, dy, pn, rho, nu):
+def simulate(nt, u, v, dt, dx, dy, pn, rho, nu, nx, ny, nit):
     b = np.zeros((ny, nx))
 
     for n in range(nt):
@@ -65,10 +66,10 @@ def simulate(nt, u, v, dt, dx, dy, pn, rho, nu):
         vn = v.copy()
 
         b = build_up_b(b, rho, dt, u, v, dx, dy)
-        pn = pressure_poisson(pn, dx, dy, b)
+        p = pressure_poisson(pn, dx, dy, b)
 
         u[1:-1, 1:-1] = (un[1:-1, 1:-1] - un[1:-1, 1:-1] * dt/dx * (un[1:-1, 1:-1] - un[1:-1, :-2]) 
-                        - vn[1:-1, 1:-1] * dt/dx * (un[1:-1, 1:-1] - un[:-2, 1:-1]) - dt/(2 * rho * dx) * (pn[1:-1, 2:] - pn[1:-1, :-2])
+                        - vn[1:-1, 1:-1] * dt/dx * (un[1:-1, 1:-1] - un[:-2, 1:-1]) - dt/(2 * rho * dx) * (p[1:-1, 2:] - p[1:-1, :-2])
                         + nu * (dt/(dx**2) * (un[1:-1, 2:] - 2 * un[1:-1, 1:-1] + un[1:-1, :-2]) + 
                         dt/(dy**2) * (un[2:,1:-1] - 2 * un[1:-1, 1:-1] + un[:-2, 1:-1])))
 
@@ -95,6 +96,19 @@ def simulate(nt, u, v, dt, dx, dy, pn, rho, nu):
     
     return u,v,p
 
+def interpolate_solution(points_to_query, u, v, p, x_coords, y_coords):
+
+    u_interp = RegularGridInterpolator((x_coords, y_coords), u.T, bounds_error=False, fill_value=None)
+    v_interp = RegularGridInterpolator((x_coords, y_coords), v.T, bounds_error=False, fill_value=None)
+    p_interp = RegularGridInterpolator((x_coords, y_coords), p.T, bounds_error=False, fill_value=None)
+
+    # Get the interpolated/extrapolated values for the query points
+    u_vals = u_interp(points_to_query)
+    v_vals = v_interp(points_to_query)
+    p_vals = p_interp(points_to_query)
+
+    # Stack the results into an [n_points, 3] array and return
+    return np.stack([u_vals, v_vals, p_vals], axis=-1)
 
 if __name__ == "__main__":
 
