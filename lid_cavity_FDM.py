@@ -19,6 +19,7 @@ X, Y = np.meshgrid(x, y)
 rho = 1 #density
 nu = 0.1
 dt = 0.001
+U = 1.0 #lid velocity
 
 u = np.zeros((ny, nx))
 v = np.zeros((ny, nx))
@@ -56,7 +57,7 @@ def pressure_poisson(p, dx, dy, b):
         
     return p
 
-def simulate(nt, u, v, dt, dx, dy, pn, rho, nu, nx, ny, nit):
+def simulate(nt, u, v, dt, dx, dy, pn, rho, nu, nx, ny, nit, U=1.0):
     b = np.zeros((ny, nx))
 
     for n in range(nt):
@@ -86,7 +87,7 @@ def simulate(nt, u, v, dt, dx, dy, pn, rho, nu, nx, ny, nit):
         
 
         u[0,:] = 0
-        u[-1,:] = 1
+        u[-1,:] = U #set lid velocity
         u[:,0] = 0
         u[:,-1] = 0
         v[0,:] = 0
@@ -109,6 +110,25 @@ def interpolate_solution(points_to_query, u, v, p, x_coords, y_coords):
 
     # Stack the results into an [n_points, 3] array and return
     return np.stack([u_vals, v_vals, p_vals], axis=-1)
+
+def display_solution(X, Y, u, v, p):
+    plt.contourf(X, Y, p, alpha=0.5, cmap=cm.viridis)
+    plt.colorbar(label='Pressure')
+
+    # --- 3. Plot the velocity field ---
+    # Draw streamlines to show the direction of the flow (u, v)
+    # The density parameter controls how many lines are drawn.
+    plt.streamplot(X, Y, u, v, color='black', density=1.2)
+    # An alternative is a quiver plot, which draws arrows:
+    # plt.quiver(X[::2, ::2], Y[::2, ::2], u[::2, ::2], v[::2, ::2])
+
+    # --- 4. Final touches ---
+    plt.title('Lid-Driven Cavity Flow')
+    plt.xlabel('X-axis')
+    plt.ylabel('Y-axis')
+
+    # Display the plot
+    plt.show()
 
 if __name__ == "__main__":
 

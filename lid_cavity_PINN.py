@@ -65,7 +65,7 @@ class LidPINN(nn.Module):
     
 def loss_function(model, interior_points,):
     #get loss on interior points
-    interior_points.require_grad = True
+    interior_points.requires_grad_(True)
     interior_x = interior_points[:, 0:1]
     interior_y = interior_points[:, 1:2]
     interior_points.requires_grad_(True)
@@ -113,7 +113,7 @@ def sample_points(n_interior, n_boundary):
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
-def visualize_pinn_solution(model, X, Y, device):
+def visualize_pinn_solution(model, X, Y, u, v, p, device):
     """
     Takes a trained PINN and visualizes its predictions for u, v, and p.
 
@@ -148,9 +148,10 @@ def visualize_pinn_solution(model, X, Y, device):
 
     # Plot Pressure contour
     plt.subplot(1, 2, 1)
-    plt.contourf(X, Y, p_pred, alpha=0.8, cmap=cm.viridis, levels=50)
+    plt.contourf(X, Y, p, alpha=0.8, cmap=cm.viridis, levels=50)
+    plt.streamplot(X, Y, u, v, color='black', density=1.5)
     plt.colorbar(label='Pressure (p)')
-    plt.title('PINN Predicted Pressure')
+    plt.title('Simulated Velocity and Pressure Fields')
     plt.xlabel('X-axis')
     plt.ylabel('Y-axis')
 
@@ -158,48 +159,53 @@ def visualize_pinn_solution(model, X, Y, device):
     plt.subplot(1, 2, 2)
     plt.contourf(X, Y, p_pred, alpha=0.8, cmap=cm.viridis, levels=50)
     plt.streamplot(X, Y, u_pred, v_pred, color='black', density=1.5)
-    plt.title('PINN Predicted Velocity')
+    plt.colorbar(label='Pressure (p)')
+    plt.title('PINN Predicted Velocity and Pressure Fields')
     plt.xlabel('X-axis')
 
     plt.tight_layout()
     plt.show()
 
 
-#Simulate fluid flow
-u, v, p = simulate(nt, u, v, dt, dx, dy, p, rho, nu, nx, ny, nit)
+if __name__ == "__main__":
 
-#Training
-model = LidPINN().to(device)
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-model.train()
+    #Simulate fluid flow
+    u, v, p = simulate(nt, u, v, dt, dx, dy, p, rho, nu, nx, ny, nit)
+
+    #Training
+    model = LidPINN().to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    model.train()
 
 
-print("Starting training...")
-for epoch in range(num_epochs):
-    interior_points, boundary_points = sample_points(1000, 100)
-    scale = torch.tensor((2.0, 2.0), dtype=torch.float32, device=device)
-    interior_points = interior_points.to(device) * scale
-    boundary_points = torch.cat([val.to(device) for val in boundary_points.values()], dim=0) * scale
+    print("Starting training...")
+    for epoch in range(num_epochs):
+        interior_points, boundary_points = sample_points(1000, 100)
+        scale = torch.tensor((2.0, 2.0), dtype=torch.float32, device=device)
+        interior_points = interior_points.to(device) * scale
+        boundary_points = torch.cat([val.to(device) for val in boundary_points.values()], dim=0) * scale
 
-    optimizer.zero_grad()
-    pred_interior = model(interior_points)
-    pred_boundary = model(boundary_points)
+        optimizer.zero_grad()
+        pred_interior = model(interior_points)
+        pred_boundary = model(boundary_points)
 
-    #Find true values for interior and boundary points
-    true_interior = torch.tensor(interpolate_solution(interior_points.cpu().numpy(), u, v, p, x, y), dtype=torch.float32).to(device)
-    true_boundary = torch.tensor(interpolate_solution(boundary_points.cpu().numpy(), u, v, p, x, y), dtype=torch.float32).to(device)
+        #Find true values for interior and boundary points
+        true_interior = torch.tensor(interpolate_solution(interior_points.cpu().numpy(), u, v, p, x, y), dtype=torch.float32).to(device)
+        true_boundary = torch.tensor(interpolate_solution(boundary_points.cpu().numpy(), u, v, p, x, y), dtype=torch.float32).to(device)
 
-    #Experimenting with different loss functions
-    loss = loss_function(model, interior_points) + nn.MSELoss()(pred_boundary, true_boundary)
-    #loss = nn.MSELoss()(pred_interior, true_interior) + nn.MSELoss()(pred_boundary, true_boundary)
+        #Experimenting with different loss functions
+        loss = loss_function(model, interior_points) + nn.MSELoss()(pred_boundary, true_boundary)
+        #loss = nn.MSELoss()(pred_interior, true_interior) + nn.MSELoss()(pred_boundary, true_boundary)
 
-    loss.backward()
-    optimizer.step()
-    if epoch % 100 == 0:
-        print(f"Epoch {epoch}, Loss: {loss.item()}")
+        loss.backward()
+        optimizer.step()
+        if epoch % 100 == 0:
+            print(f"Epoch {epoch}, Loss: {loss.item()}")
 
-# ... (end of your training loop) ...
-print("Training finished.")
+    # ... (end of your training loop) ...
+    print("Training finished.")
 
-# Call the visualization function with the trained model
-visualize_pinn_solution(model, X, Y, device)
+    torch.save(model, "lid_pinn_full.pth")
+
+    # Call the visualization function with the trained model
+    visualize_pinn_solution(model, X, Y, u, v, p, device)
