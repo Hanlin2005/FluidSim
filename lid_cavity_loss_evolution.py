@@ -1,3 +1,4 @@
+#THIS CODE DOES THE SAME AS THE TRANSFER LEARNING CODE BUT TRACKS THE ERROR EVOLUTION
 #THIS CODE IS FOR THE TRANSFER LEARNING EXPERIMENTS OF THE LID CAVITY BENCHMARK
 import torch
 import numpy as np
@@ -37,8 +38,6 @@ epochs = 500
 n_interior = 1024
 n_boundary = 256
 
-#Clear previous plots
-
 
 #Load the pre-trained model
 model = torch.load("lid_pinn_full.pth", map_location=device)
@@ -61,18 +60,13 @@ for i, layer in enumerate(lin_layers):
 
 optimizer = torch.optim.Adam(filter(lambda p_: p_.requires_grad, model.parameters()), lr=lr)
 
-model.train()
+
+
+#Error tracking
+errors = []
+losses = []
 for ep in range(epochs):
-
-    #Trying out different sampling strategies for interior and boundary points, follwing is random sampling
-    interior_pts, boundary_pts = sample_points(n_interior, n_boundary)
-    scale = torch.tensor((2.0, 2.0), dtype=torch.float32, device=device)
-    interior_pts = interior_pts.to(device) * scale
-    boundary_pts = torch.cat([val.to(device) for val in boundary_pts.values()], dim=0) * scale
-
-
     #Sampling based on error:
-    
     initial_error, pointwise_rel = evaluate_error(model, X, Y, x, y, u, v, p)
     interior_pts = sample_points_by_error(pointwise_rel, X, Y,
                                  n_samples=2000, uniform_frac=0.2,
@@ -82,7 +76,7 @@ for ep in range(epochs):
                                         n_per_side=250, boundary_frac=0.08,
                                         temperature=0.7, device=device)
     print("Initial relative error (L2 over fields):", initial_error)
-    
+    errors.append(initial_error)
     
 
     # targets from FDM
@@ -110,6 +104,7 @@ for ep in range(epochs):
     w_data_int = 1.0
 
     loss = w_res*res_loss + w_bnd*bnd_loss + w_data_int*data_int_loss
+    losses.append(loss.item())
     #loss = data_int_loss + bnd_loss
 
     optimizer.zero_grad()
@@ -122,6 +117,26 @@ for ep in range(epochs):
 
 #Evaluate the fine-tuned model
 model.eval()
+
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8,8), sharex=True)
+
+ax1.plot(losses, label="Training Loss", color="blue")
+ax1.set_ylabel("Loss")
+ax1.set_yscale("log")
+ax1.legend()
+ax1.grid(True, ls="--", alpha=0.5)
+
+ax2.plot(errors, label="Relative L2 Error", color="red")
+ax2.set_xlabel("Epoch")
+ax2.set_ylabel("Error")
+ax2.set_yscale("log")
+ax2.legend()
+ax2.grid(True, ls="--", alpha=0.5)
+
+plt.suptitle("PINN Training: Loss and Error over Epochs")
+plt.tight_layout()
+plt.show()
+
 
 error, pointwise_errors = evaluate_error(model, X, Y, x, y, u, v, p)
 print(error)

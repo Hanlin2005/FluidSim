@@ -166,6 +166,49 @@ def visualize_pinn_solution(model, X, Y, u, v, p, device):
     plt.tight_layout()
     plt.show()
 
+def evaluate_error(model, X, Y, x, y, u,v,p):
+    model.eval()
+    grid_points = torch.stack([torch.tensor(X.flatten(), dtype=torch.float32), torch.tensor(Y.flatten(), dtype=torch.float32)], dim=1).to(device)
+
+    with torch.no_grad():
+        predictions = model(grid_points).cpu()
+    
+    true_values = torch.from_numpy(interpolate_solution(grid_points.cpu(), u, v, p, x, y))
+
+    error = (torch.norm(predictions - true_values) / (torch.norm(true_values)+1e-12)).item()  #.item to make it into a float from a 1 element tensor
+
+    pointwise_rel = torch.abs(predictions-true_values) / (torch.abs(true_values) + 1e-12) #pointwise relative error
+
+    return error, pointwise_rel.reshape(X.shape[0], X.shape[1], 3).cpu().numpy()
+
+
+def plot_error_map(X, Y, pointwise_rel, titles=("u", "v", "p")):
+    """
+    pointwise_rel: (ny, nx, 3) relative error field from evaluate_error
+    """
+
+    figcols = 4
+    plt.figure(figsize=(4*figcols, 4))
+
+    # Per-field heatmaps
+    for i in range(3):
+        plt.subplot(1, figcols, i+1)
+        plt.contourf(X, Y, pointwise_rel[..., i], levels=50, cmap=cm.inferno)
+        plt.colorbar(label="relative error")
+        plt.title(f"Rel. Error: {titles[i]}")
+        plt.xlabel("x"); plt.ylabel("y")
+
+    # Combined error (L2 across fields)
+    comb = np.linalg.norm(pointwise_rel, axis=-1)  # sqrt(u^2+v^2+p^2) pointwise (relative)
+    plt.subplot(1, figcols, 4)
+    plt.contourf(X, Y, comb, levels=50, cmap=cm.inferno)
+    plt.colorbar(label="relative error (L2 over fields)")
+    plt.title("Combined Rel. Error (u,v,p)")
+    plt.xlabel("x"); plt.ylabel("y")
+
+    plt.tight_layout()
+    plt.show()
+
 
 if __name__ == "__main__":
 
