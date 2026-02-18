@@ -101,16 +101,6 @@ This demonstrates that features learned at one Reynolds number transfer usefully
 
 **Training diagnostics** (`pinn/lid_cavity_loss_evolution.py`) tracks both the training loss and the relative L2 error at every epoch, producing convergence curves on a log scale.
 
-### 5. Differentiable Spectral Solver (`spectral/CFD.py`)
-
-A pseudo-spectral solver for 2D incompressible flow on a periodic domain, formulated in the vorticity–streamfunction representation:
-
-- **Spatial discretization**: FFT-based spectral operators with 2/3-rule dealiasing.
-- **Time integration**: Adams–Bashforth 2 (advection) + Crank–Nicolson (diffusion).
-- **Differentiability**: `jax.grad` computes ∂Loss/∂A and ∂Loss/∂ν through the entire rollout via `jax.lax.scan`.
-
-The finite-volume variant (`spectral/diff_sim.py`) uses a staggered MAC grid, upwind advection, and a Jacobi pressure Poisson solver, also wrapped in `lax.scan` for JIT compilation.
-
 ---
 
 ## Results
@@ -128,14 +118,14 @@ The finite-volume variant (`spectral/diff_sim.py`) uses a staggered MAC grid, up
 ## Installation
 
 ```bash
-git clone https://github.com/<your-username>/FluidSim.git
+git clone https://github.com/Hanlin2005/FluidSim.git
 cd FluidSim
 pip install -r requirements.txt
 ```
 
 **Dependencies**:
 
-| Package | Purpose |
+| Package | | Purpose |
 |---|---|
 | `numpy` | FDM solver, array operations |
 | `scipy` | Bilinear interpolation (`RegularGridInterpolator`) |
@@ -176,11 +166,6 @@ python -m pinn.lid_cavity_loss_evolution
 python -m fdm.lid_cavity_FDM_differentiable
 ```
 
-**Pseudo-spectral differentiable solver:**
-```bash
-python -m spectral.CFD
-```
-
 ---
 
 ## Technical Notes
@@ -190,7 +175,3 @@ python -m spectral.CFD
 - All random seeds are not fixed by default; results will vary across runs. Set `torch.manual_seed` / `jax.random.PRNGKey` for reproducibility.
 
 ---
-
-## License
-
-MIT License. See `LICENSE` for details.
