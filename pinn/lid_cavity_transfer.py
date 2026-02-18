@@ -1,12 +1,13 @@
 #THIS CODE IS FOR THE TRANSFER LEARNING EXPERIMENTS OF THE LID CAVITY BENCHMARK
 import torch
 import numpy as np
+from pathlib import Path
 from torch import nn
-from lid_cavity_FDM import simulate, interpolate_solution, display_solution
+from fdm.lid_cavity_FDM import simulate, interpolate_solution, display_solution
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
-from lid_cavity_PINN import LidPINN, loss_function, visualize_pinn_solution, sample_points, evaluate_error, plot_error_map
-from lid_cavity_sampling import sample_points_by_error, sample_boundary_by_error
+from pinn.lid_cavity_PINN import LidPINN, loss_function, visualize_pinn_solution, sample_points, evaluate_error, plot_error_map
+from pinn.lid_cavity_sampling import sample_points_by_error, sample_boundary_by_error
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -41,7 +42,8 @@ n_boundary = 256
 
 
 #Load the pre-trained model
-model = torch.load("lid_pinn_full.pth", map_location=device)
+_MODEL_PATH = Path(__file__).resolve().parent.parent / "models" / "lid_pinn_full.pth"
+model = torch.load(_MODEL_PATH, map_location=device)
 model.eval()
 
 

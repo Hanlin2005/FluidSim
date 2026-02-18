@@ -1,7 +1,8 @@
 import torch
 import numpy as np
+from pathlib import Path
 from torch import nn
-from lid_cavity_FDM import simulate, interpolate_solution
+from fdm.lid_cavity_FDM import simulate, interpolate_solution
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
@@ -248,7 +249,7 @@ if __name__ == "__main__":
     # ... (end of your training loop) ...
     print("Training finished.")
 
-    torch.save(model, "lid_pinn_full.pth")
+    torch.save(model, Path(__file__).resolve().parent.parent / "models" / "lid_pinn_full.pth")
 
     # Call the visualization function with the trained model
     visualize_pinn_solution(model, X, Y, u, v, p, device)
