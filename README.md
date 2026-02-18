@@ -16,35 +16,7 @@ This project investigates the use of PINNs as mesh-free surrogates for incompres
 
 ---
 
-## Repository Structure
 
-```
-FluidSim/
-├── fdm/                              # Finite-difference reference solvers
-│   ├── lid_cavity_FDM.py             # NumPy solver: pressure-Poisson + velocity update
-│   └── lid_cavity_FDM_differentiable.py  # JAX solver: differentiable w.r.t. boundary conditions
-│
-├── pinn/                             # Physics-Informed Neural Network experiments
-│   ├── lid_cavity_PINN.py            # Network architecture, PDE loss, training, evaluation
-│   ├── lid_cavity_sampling.py        # Error-guided importance sampling for collocation
-│   ├── lid_cavity_transfer.py        # Transfer learning to a new flow regime
-│   └── lid_cavity_loss_evolution.py  # Training diagnostics: loss and L2 error over epochs
-│
-├── spectral/                         # Higher-order differentiable solvers (JAX)
-│   ├── CFD.py                        # Pseudo-spectral solver (vorticity–streamfunction, AB2/CN)
-│   └── diff_sim.py                   # Finite-volume solver on staggered MAC grid
-│
-├── models/                           # Saved model checkpoints
-│   └── lid_pinn_full.pth             # Pre-trained PINN weights (U_lid = 1.0, Re = 20)
-│
-└── plots/                            # Generated figures
-    ├── lid_streamlines.png           # FDM steady-state streamlines
-    ├── lid_vorticity.png             # Vorticity field
-    ├── mse_loss_lid_cavity.png       # Training loss curve
-    └── PINN-transfer.png             # Transfer learning comparison
-```
-
----
 
 ## Methods
 
@@ -125,7 +97,7 @@ pip install -r requirements.txt
 
 **Dependencies**:
 
-| Package | | Purpose |
+| Package |  Purpose |
 |---|---|
 | `numpy` | FDM solver, array operations |
 | `scipy` | Bilinear interpolation (`RegularGridInterpolator`) |
